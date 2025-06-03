@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <title>Завантаження нотатки</title>
+</head>
+<body>
+    <h1>Форма створення нотатки</h1>
+    <form action="/write" method="post">
+        <label for="note_name">Назва нотатки:</label>
+        <input type="text" id="note_name" name="note_name" required><br><br>
+
+        <label for="note">Текст нотатки:</label><br>
+        <textarea id="note" name="note" rows="10" cols="30" required></textarea><br><br>
+
+        <button type="submit">Зберегти</button>
+    </form>
+</body>
+</html>
