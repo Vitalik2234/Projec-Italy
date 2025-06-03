@@ -1,26 +1,31 @@
-const fs = require('fs');
-const path = require('path');
 const express = require("express");
+const fs = require("fs");
+const path = require("path");
 const multer = require("multer");
 const swaggerJsdoc = require("swagger-jsdoc");
 const swaggerUi = require("swagger-ui-express");
 
 const app = express();
 
-// Змінні середовища або значення за замовчуванням
-const CACHE = process.env.CACHE || './notes';
+// Налаштування порту з Render або дефолт 3000
 const PORT = process.env.PORT || 3000;
-const HOST = process.env.HOST || '0.0.0.0';
 
-// Створення папки, якщо не існує
-if (!fs.existsSync(CACHE)) {
-    fs.mkdirSync(CACHE, { recursive: true });
+// Шлях до папки для нотаток (cache)
+const CACHE_DIR = path.join(__dirname, 'cache');
+
+// Переконаємося, що папка існує
+if (!fs.existsSync(CACHE_DIR)) {
+    fs.mkdirSync(CACHE_DIR);
 }
 
 // Парсери тіла запиту
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
+
+// Для PUT /notes/:noteName приймаємо plain text
 app.use('/notes/:noteName', express.text());
+
+// Статика з папки public (якщо вона у тебе є)
 app.use('/', express.static('public'));
 
 // Swagger конфігурація
@@ -33,8 +38,9 @@ const swaggerOptions = {
             description: 'Сервіс для зберігання нотаток'
         },
     },
-    apis: ['./main.js'],
+    apis: [__filename], // підтягуємо jsdoc з цього файлу
 };
+
 const swaggerDocs = swaggerJsdoc(swaggerOptions);
 app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 
@@ -56,8 +62,12 @@ app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
  *         description: Нотатку не знайдено
  */
 app.get('/notes/:noteName', (req, res) => {
-    const notePath = path.join(CACHE, `${req.params.noteName}.txt`);
-    if (!fs.existsSync(notePath)) return res.status(404).send();
+    const notePath = path.join(CACHE_DIR, `${req.params.noteName}.txt`);
+
+    if (!fs.existsSync(notePath)) {
+        return res.status(404).send('Note not found');
+    }
+
     const noteContent = fs.readFileSync(notePath, 'utf8');
     res.send(noteContent);
 });
@@ -86,12 +96,19 @@ app.get('/notes/:noteName', (req, res) => {
  *         description: Нотатку не знайдено
  */
 app.put('/notes/:noteName', (req, res) => {
-    const notePath = path.join(CACHE, `${req.params.noteName}.txt`);
-    if (!fs.existsSync(notePath)) return res.status(404).send();
-    if (typeof req.body !== 'string') return res.status(400).send('Invalid request body');
+    const notePath = path.join(CACHE_DIR, `${req.params.noteName}.txt`);
+
+    if (!fs.existsSync(notePath)) {
+        return res.status(404).send('Note not found');
+    }
+
+    if (typeof req.body !== 'string') {
+        return res.status(400).send('Invalid request body');
+    }
+
     try {
         fs.writeFileSync(notePath, req.body);
-        res.status(200).send();
+        res.status(200).send('Note updated');
     } catch (err) {
         console.error("Error writing note:", err);
         res.status(500).send('Internal Server Error');
@@ -116,10 +133,13 @@ app.put('/notes/:noteName', (req, res) => {
  *         description: Нотатку не знайдено
  */
 app.delete('/notes/:noteName', (req, res) => {
-    const notePath = path.join(CACHE, `${req.params.noteName}.txt`);
-    if (!fs.existsSync(notePath)) return res.status(404).send();
+    const notePath = path.join(CACHE_DIR, `${req.params.noteName}.txt`);
+
+    if (!fs.existsSync(notePath)) {
+        return res.status(404).send('Note not found');
+    }
     fs.unlinkSync(notePath);
-    res.status(200).send();
+    res.status(200).send('Note deleted');
 });
 
 /**
@@ -143,11 +163,11 @@ app.delete('/notes/:noteName', (req, res) => {
  *                     type: string
  */
 app.get('/notes', (req, res) => {
-    const notes = fs.readdirSync(CACHE)
-        .filter((name) => name.endsWith('.txt'))
-        .map((file) => {
+    const notes = fs.readdirSync(CACHE_DIR)
+        .filter(name => name.endsWith('.txt'))
+        .map(file => {
             const noteName = file.replace('.txt', '');
-            const noteText = fs.readFileSync(path.join(CACHE, file), 'utf8');
+            const noteText = fs.readFileSync(path.join(CACHE_DIR, file), 'utf8');
             return { name: noteName, text: noteText };
         });
     res.status(200).json(notes);
@@ -184,12 +204,14 @@ app.post('/write', multer().none(), (req, res) => {
         return res.status(400).send('Missing note_name or note');
     }
 
-    const filePath = path.join(CACHE, `${name}.txt`);
-    if (fs.existsSync(filePath)) return res.status(400).send('Note already exists');
+    const filePath = path.join(CACHE_DIR, `${name}.txt`);
+    if (fs.existsSync(filePath)) {
+        return res.status(400).send('Note already exists');
+    }
 
     try {
         fs.writeFileSync(filePath, note);
-        res.status(201).send();
+        res.status(201).send('Note created');
     } catch (err) {
         console.error("Error writing note:", err);
         res.status(500).send('Internal Server Error');
@@ -197,9 +219,10 @@ app.post('/write', multer().none(), (req, res) => {
 });
 
 // Запуск сервера
-app.listen(PORT, HOST, () => {
-    console.log(`Server running at http://${HOST}:${PORT}`);
+app.listen(PORT, () => {
+    console.log(`Server running at http://0.0.0.0:${PORT}`);
 });
+
 
 
 
