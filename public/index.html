@@ -1,19 +1,24 @@
 <!DOCTYPE html>
 <html lang="uk">
 <head>
-    <meta charset="UTF-8">
-    <title>Завантаження нотатки</title>
+  <meta charset="UTF-8" />
+  <title>Вхід</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-    <h1>Форма створення нотатки</h1>
-    <form action="/write" method="post">
-        <label for="note_name">Назва нотатки:</label>
-        <input type="text" id="note_name" name="note_name" required><br><br>
 
-        <label for="note">Текст нотатки:</label><br>
-        <textarea id="note" name="note" rows="10" cols="30" required></textarea><br><br>
+  <form action="home.html" method="get">
+    <h2>Вхід</h2>
 
-        <button type="submit">Зберегти</button>
-    </form>
+    <label for="login">Логін:</label>
+    <input type="text" id="login" name="login" required />
+
+    <label for="password">Пароль:</label>
+    <input type="password" id="password" name="password" required />
+
+    <button type="submit">Увійти</button>
+  </form>
+
 </body>
 </html>
+
